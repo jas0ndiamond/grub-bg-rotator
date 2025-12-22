@@ -1,7 +1,6 @@
 #!/bin/bash
 # grub-intake-rotate.sh - GRUB background rotator with intake processing
 # SPDX-License-Identifier: MIT
-# SPDX-FileCopyrightText: 2025 [Your Name] <your.email@example.com>
 
 # GRUB Compatibility Settings
 # - 1920x1080: Common safe resolution (most modern displays)
@@ -33,42 +32,45 @@ if ! command -v file >/dev/null 2>&1; then
     exit 1
 fi
 
-# Check directories
-for dir in "$INTAKE_DIR" "$GRUBBG_DIR"; do
-    if [ ! -d "$dir" ]; then
-        echo "Error: Directory $dir does not exist" >&2
-        exit 1
-    fi
-done
+# Check GRUBBG directory (required)
+if [ ! -d "$GRUBBG_DIR" ]; then
+    echo "Error: Directory $GRUBBG_DIR does not exist" >&2
+    exit 1
+fi
 
-# Process new images from intake → grubbg (skip if already converted)
-echo "Processing new images from $INTAKE_DIR..."
-for img in "$INTAKE_DIR"/*.{jpg,jpeg,png,JPG,JPEG,PNG}; do
-    [ -f "$img" ] || continue
-    
-    base=$(basename "$img" | sed 's/\.[^.]*$//')
-    grub_version="$GRUBBG_DIR/${base}_grub.png"
-    
-    # Skip if already converted (same size)
-    if [ -f "$grub_version" ] && [ "$(stat -c%s "$img")" -eq "$(stat -c%s "$grub_version")" ]; then
-        echo "  Skip: $img (already converted)"
-        continue
-    fi
-    
-    echo "  Converting: $img → $grub_version"
-    if convert "$img" \
-        -resize ${GRUB_WIDTH}x${GRUB_HEIGHT}^ \
-        -gravity center \
-        -extent ${GRUB_WIDTH}x${GRUB_HEIGHT} \
-        -strip \
-        -colors $GRUB_COLORS \
-        "$grub_version"; then
-        echo "    ✓ Conversion successful"
-    else
-        echo "    ✗ Conversion failed, skipping" >&2
-        continue
-    fi
-done
+# Warn if intake directory missing (optional)
+if [ ! -d "$INTAKE_DIR" ]; then
+    echo "Warning: Intake directory $INTAKE_DIR missing - skipping new conversions (add it to enable auto-processing)"
+else
+    # Process new images from intake → grubbg (skip if already converted)
+    echo "Processing new images from $INTAKE_DIR..."
+    for img in "$INTAKE_DIR"/*.{jpg,jpeg,png,JPG,JPEG,PNG}; do
+        [ -f "$img" ] || continue
+        
+        base=$(basename "$img" | sed 's/\.[^.]*$//')
+        grub_version="$GRUBBG_DIR/${base}_grub.png"
+        
+        # Skip if already converted (same size)
+        if [ -f "$grub_version" ] && [ "$(stat -c%s "$img")" -eq "$(stat -c%s "$grub_version")" ]; then
+            echo "  Skip: $img (already converted)"
+            continue
+        fi
+        
+        echo "  Converting: $img → $grub_version"
+        if convert "$img" \
+            -resize ${GRUB_WIDTH}x${GRUB_HEIGHT}^ \
+            -gravity center \
+            -extent ${GRUB_WIDTH}x${GRUB_HEIGHT} \
+            -strip \
+            -colors $GRUB_COLORS \
+            "$grub_version"; then
+            echo "    ✓ Conversion successful"
+        else
+            echo "    ✗ Conversion failed, skipping" >&2
+            continue
+        fi
+    done
+fi
 
 # Rotation logic
 echo "Scanning $GRUBBG_DIR for GRUB-compatible images..."
@@ -100,3 +102,4 @@ else
     echo "No GRUB-compatible images found in $GRUBBG_DIR" >&2
     exit 1
 fi
+
