@@ -13,6 +13,7 @@ GRUB_COLORS=256
 # the target image
 GRUB_BACKGROUND="/boot/grub/background.png"
 
+# changeme to your image directories
 INTAKE_DIR="/home/user/intake"
 GRUBBG_DIR="/home/user/grubbg"
 
