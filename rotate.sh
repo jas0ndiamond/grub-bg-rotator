@@ -1,106 +1,54 @@
 #!/bin/bash
-# grub-intake-rotate.sh - GRUB background rotator with intake processing
+# rotate.sh - Non-root image conversion only
 # SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2025 [Your Name]
 
-# GRUB Compatibility Settings
-# - 1920x1080: Common safe resolution (most modern displays)
-# - 256 colors: 8-bit palette (GRUB reliable, no alpha channel issues)
-# - PNG output: GRUB's preferred format (fastest loading)
 GRUB_WIDTH=1920
 GRUB_HEIGHT=1080
 GRUB_COLORS=256
+GRUBBG_DIR="$HOME/.grub-bg"
 
-# the target image
-GRUB_BACKGROUND="/boot/grub/background.png"
+show_help() {
+    cat << EOF
+Usage: $0 INTAKE_DIR
 
-# changeme to your image directories
-INTAKE_DIR="/home/user/intake"
-GRUBBG_DIR="/home/user/grubbg"
+Converts raw images from INTAKE_DIR to GRUB format in $GRUBBG_DIR/.
+Run with: sudo ./run.sh INTAKE_DIR
+EOF
+}
 
-# Check if running as root
-if [ "$EUID" -ne 0 ]; then
-    echo "Error: Must run as root (use sudo)" >&2
-    exit 1
-fi
+case "$1" in
+    -h|--help|-help|"") show_help; exit 0 ;;
+    *) INTAKE_DIR="$1" ;;
+esac
 
-# Check dependencies
-if ! command -v convert >/dev/null 2>&1; then
-    echo "Error: ImageMagick (convert) not installed. Install with: sudo apt install imagemagick" >&2
-    exit 1
-fi
-if ! command -v file >/dev/null 2>&1; then
-    echo "Error: file utility not installed. Install with: sudo apt install file" >&2
-    exit 1
-fi
+# Check dependencies + directories (non-root safe)
+command -v convert >/dev/null 2>&1 || { echo "Install imagemagick"; exit 1; }
+command -v file >/dev/null 2>&1 || { echo "Install file"; exit 1; }
 
-# Check GRUBBG directory (required)
-if [ ! -d "$GRUBBG_DIR" ]; then
-    echo "Error: Directory $GRUBBG_DIR does not exist" >&2
-    exit 1
-fi
+mkdir -p "$GRUBBG_DIR"
 
-# Warn if intake directory missing (optional)
 if [ ! -d "$INTAKE_DIR" ]; then
-    echo "Warning: Intake directory $INTAKE_DIR missing - skipping new conversions (add it to enable auto-processing)"
-else
-    # Process new images from intake → grubbg (skip if already converted)
-    echo "Processing new images from $INTAKE_DIR..."
-    for img in "$INTAKE_DIR"/*.{jpg,jpeg,png,JPG,JPEG,PNG}; do
-        [ -f "$img" ] || continue
-        
-        base=$(basename "$img" | sed 's/\.[^.]*$//')
-        grub_version="$GRUBBG_DIR/${base}_grub.png"
-        
-        # Skip if already converted (same size)
-        if [ -f "$grub_version" ] && [ "$(stat -c%s "$img")" -eq "$(stat -c%s "$grub_version")" ]; then
-            echo "  Skip: $img (already converted)"
-            continue
-        fi
-        
-        echo "  Converting: $img → $grub_version"
-        if convert "$img" \
-            -resize ${GRUB_WIDTH}x${GRUB_HEIGHT}^ \
-            -gravity center \
-            -extent ${GRUB_WIDTH}x${GRUB_HEIGHT} \
-            -strip \
-            -colors $GRUB_COLORS \
-            "$grub_version"; then
-            echo "    ✓ Conversion successful"
-        else
-            echo "    ✗ Conversion failed, skipping" >&2
-            continue
-        fi
-    done
+    echo "Warning: $INTAKE_DIR missing"
+    exit 0
 fi
 
-# Rotation logic
-echo "Scanning $GRUBBG_DIR for GRUB-compatible images..."
-IMAGES=( $(ls "$GRUBBG_DIR"/*_grub.png 2>/dev/null | grep -E '\.png$' | \
-           xargs -I {} file {} | \
-           grep -v "RGBA\|transparency" | \
-           sed 's/:.*//' | sort) )
-
-echo "Found images:"
-for img in "${IMAGES[@]}"; do
-    echo "  - $img"
-done
-echo "Total GRUB-compatible images: ${#IMAGES[@]}"
-
-if [ ${#IMAGES[@]} -gt 0 ]; then
-    SEED=$(head -c 32 /dev/urandom | tr -dc '0-9' | head -c 10 || echo $$)
-    RANDOM=$SEED
-    RND=$(( RANDOM % ${#IMAGES[@]} ))
-    SELECTED="${IMAGES[$RND]}"
-    echo "Selecting: $SELECTED"
+# Convert new images (non-root)
+echo "Converting images from $INTAKE_DIR..."
+for img in "$INTAKE_DIR"/*.{jpg,jpeg,png,JPG,JPEG,PNG}; do
+    [ -f "$img" ] || continue
+    base=$(basename "$img" | sed 's/\.[^.]*$//')
+    grub_version="$GRUBBG_DIR/${base}_grub.png"
     
-    if cp "$SELECTED" "$GRUB_BACKGROUND"; then
-        echo "SUCCESS: Copied $SELECTED to $GRUB_BACKGROUND"
-    else
-        echo "ERROR: Copy failed!" >&2
-        exit 1
-    fi
-else
-    echo "No GRUB-compatible images found in $GRUBBG_DIR" >&2
-    exit 1
-fi
+    [ -f "$grub_version" ] && { echo "Skip: $img"; continue; }
+    
+    echo "Converting: $img → $grub_version"
+    convert "$img" \
+        -resize ${GRUB_WIDTH}x${GRUB_HEIGHT}^ \
+        -gravity center -extent ${GRUB_WIDTH}x${GRUB_HEIGHT} \
+        -strip -colors $GRUB_COLORS \
+        "$grub_version" && echo "  ✓ Done"
+done
+
+echo "Converted images ready in $GRUBBG_DIR"
 
