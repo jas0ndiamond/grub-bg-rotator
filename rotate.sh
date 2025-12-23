@@ -1,7 +1,7 @@
 #!/bin/bash
 # rotate.sh - Non-root image conversion only
 # SPDX-License-Identifier: MIT
-# SPDX-FileCopyrightText: 2025 [Your Name]
+# SPDX-FileCopyrightText: 2025 Jason
 
 GRUB_WIDTH=1920
 GRUB_HEIGHT=1080

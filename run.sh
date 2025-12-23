@@ -1,7 +1,7 @@
 #!/bin/bash
 # run.sh - Root wrapper for grub-rotate.sh
 # SPDX-License-Identifier: MIT
-# SPDX-FileCopyrightText: 2025 [Your Name]
+# SPDX-FileCopyrightText: 2025 Jason
 
 # Check root
 if [ "$EUID" -ne 0 ]; then
