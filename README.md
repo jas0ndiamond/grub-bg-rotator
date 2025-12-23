@@ -9,6 +9,7 @@ Rotate grub background randomly from imageset on file system. Handles grub-frien
 * Imageset is often not available at bootloader launch since it's typically not stored on `/boot/`
 * Converted grub-friendly images are stored in `~/.grubbg` in the home of the user that owns the project root shell scripts (run.sh, rotate.sh).
 * Image files retrieved for conversion need to have these extensions: jpg,jpeg,png,JPG,JPEG,PNG
+* Remove an image from the imageset by deleting the image from `~/.grubbg` and either running `update-grub` or `run.sh`
 ---
 
 ### Setup
@@ -30,6 +31,7 @@ Create a systemd service:
 [Service]
 ...
 ```
+
 ---
 
 ### TODO
