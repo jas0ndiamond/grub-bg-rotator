@@ -26,10 +26,31 @@ Rotate grub background randomly from imageset on file system. Handles grub-frien
 
 ### Launch on startup
 
-Create a systemd service:
+Create a systemd service at `/etc/systemd/system/grub-rotator.service`:
 ```
+[Unit]
+Description=GRUB Background Rotator
+After=network.target local-fs.target
+
 [Service]
-...
+Type=oneshot
+ExecStart=/home/user/grub-bg-rotator/run.sh /home/user/myImages
+RemainAfterExit=yes
+User=root
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Load the new service into systemd:
+
+```
+sudo systemctl daemon-reload
+sudo systemctl status grub-rotator
+sudo systemctl enable grub-rotator
+sudo systemctl status grub-rotator
 ```
 
 ---
